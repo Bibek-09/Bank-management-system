@@ -1,0 +1,249 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_ACCOUNTS 100
+
+// Structure for bank account
+typedef struct {
+    char name[30];
+    int acc_no;
+    int balance;
+} Account;
+
+Account accounts[MAX_ACCOUNTS];
+int total_accounts = 0;
+
+// Function prototypes
+void load_accounts();
+void save_accounts();
+void create_account();
+void deposit();
+void withdraw();
+void see_details();
+void delete_account();
+void main_menu();
+
+void load_accounts() {
+    FILE *file = fopen("accounts.txt", "r");
+    if (file == NULL) {
+        printf("No previous accounts found. Starting fresh...\n");
+        return;
+    }
+    total_accounts = 0;
+    while (fscanf(file, " %29[^\t] %d %d", accounts[total_accounts].name, &accounts[total_accounts].acc_no, &accounts[total_accounts].balance) != EOF) {
+        total_accounts++;
+    }
+    fclose(file);
+}
+
+void save_accounts() {
+    FILE *file = fopen("accounts.txt", "w");
+    if (file == NULL) {
+        printf("Error saving account details!\n");
+        return;
+    }
+    for (int i = 0; i < total_accounts; i++) {
+        fprintf(file, "%s\t%d\t%d\n", accounts[i].name, accounts[i].acc_no, accounts[i].balance);
+    }
+    fclose(file);
+}
+
+void create_account() {
+    if (total_accounts >= MAX_ACCOUNTS) {
+        printf("Account limit reached! Cannot create more accounts.\n");
+        return;
+    }
+
+    printf("\nEnter account holder name: ");
+    getchar(); // Clear buffer
+    fgets(accounts[total_accounts].name, 30, stdin);
+    accounts[total_accounts].name[strcspn(accounts[total_accounts].name, "\n")] = '\0'; // Remove newline
+
+    int acc_no;
+    printf("Enter account number: ");
+    while (scanf("%d", &acc_no) != 1) {
+        printf("Invalid input. Please enter a valid account number: ");
+        while (getchar() != '\n'); // Clear input buffer
+    }
+
+    // Check for duplicate account numbers
+    for (int i = 0; i < total_accounts; i++) {
+        if (accounts[i].acc_no == acc_no) {
+            printf("Account number already exists! Try again.\n");
+            return;
+        }
+    }
+
+    accounts[total_accounts].acc_no = acc_no;
+    accounts[total_accounts].balance = 0; // Initial balance
+
+    total_accounts++;
+    save_accounts();
+    printf("Account successfully created!\n");
+}
+
+void deposit() {
+    int acc_no, amount, found = 0;
+    printf("Enter account number: ");
+    if (scanf("%d", &acc_no) != 1) {
+        printf("Invalid input.\n");
+        while (getchar() != '\n');
+        return;
+    }
+
+    for (int i = 0; i < total_accounts; i++) {
+        if (accounts[i].acc_no == acc_no) {
+            printf("Enter amount to deposit: ");
+            if (scanf("%d", &amount) != 1 || amount <= 0) {
+                printf("Invalid amount.\n");
+                while (getchar() != '\n');
+                return;
+            }
+            accounts[i].balance += amount;
+            save_accounts();
+            printf("Money deposited successfully! New balance: %d\n", accounts[i].balance);
+            found = 1;
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("Account not found!\n");
+    }
+}
+
+void withdraw() {
+    int acc_no, amount, found = 0;
+    printf("Enter account number: ");
+    if (scanf("%d", &acc_no) != 1) {
+        printf("Invalid input.\n");
+        while (getchar() != '\n');
+        return;
+    }
+
+    for (int i = 0; i < total_accounts; i++) {
+        if (accounts[i].acc_no == acc_no) {
+            printf("Enter amount to withdraw: ");
+            if (scanf("%d", &amount) != 1 || amount <= 0) {
+                printf("Invalid amount.\n");
+                while (getchar() != '\n');
+                return;
+            }
+            if (amount > accounts[i].balance) {
+                printf("Insufficient funds!\n");
+            } else {
+                accounts[i].balance -= amount;
+                save_accounts();
+                printf("Withdrawal successful! New balance: %d\n", accounts[i].balance);
+            }
+            found = 1;
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("Account not found!\n");
+    }
+}
+
+void see_details() {
+    int acc_no, found = 0;
+    printf("Enter account number: ");
+    if (scanf("%d", &acc_no) != 1) {
+        printf("Invalid input.\n");
+        while (getchar() != '\n');
+        return;
+    }
+
+    for (int i = 0; i < total_accounts; i++) {
+        if (accounts[i].acc_no == acc_no) {
+            printf("\nAccount Details:\n");
+            printf("Name: %s\n", accounts[i].name);
+            printf("Account Number: %d\n", accounts[i].acc_no);
+            printf("Balance: %d\n", accounts[i].balance);
+            found = 1;
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("Account not found!\n");
+    }
+}
+
+void delete_account() {
+    int acc_no, found = 0;
+    printf("Enter account number to delete: ");
+    if (scanf("%d", &acc_no) != 1) {
+        printf("Invalid input.\n");
+        while (getchar() != '\n');
+        return;
+    }
+
+    for (int i = 0; i < total_accounts; i++) {
+        if (accounts[i].acc_no == acc_no) {
+            found = 1;
+            for (int j = i; j < total_accounts - 1; j++) {
+                accounts[j] = accounts[j + 1]; // Shift accounts
+            }
+            total_accounts--;
+            save_accounts();
+            printf("Account successfully deleted.\n");
+            break;
+        }
+    }
+
+    if (!found) {
+        printf("Account not found!\n");
+    }
+}
+
+void main_menu() {
+    printf("\n\t*BANK SYSTEM*\n");
+    printf("1. Create Account\n");
+    printf("2. Deposit Money\n");
+    printf("3. Withdraw Money\n");
+    printf("4. See Account Details\n");
+    printf("5. Delete Account\n");
+    printf("6. Exit\n");
+}
+
+int main() {
+    int choice;
+
+    load_accounts();
+
+    while (1) {
+        main_menu();
+        printf("Enter your choice: ");
+        if (scanf("%d", &choice) != 1) {
+            printf("Invalid input! Please enter a number.\n");
+            while (getchar() != '\n'); // Clear input buffer
+            continue;
+        }
+
+        switch (choice) {
+            case 1:
+                create_account();
+                break;
+            case 2:
+                deposit();
+                break;
+            case 3:
+                withdraw();
+                break;
+            case 4:
+                see_details();
+                break;
+            case 5:
+                delete_account();
+                break;
+            case 6:
+                printf("Thank you for using our banking system!\n");
+                return 0;
+            default:
+                printf("Invalid choice! Please enter a valid option.\n");
+        }
+    }
+}
